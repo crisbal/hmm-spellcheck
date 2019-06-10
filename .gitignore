@@ -1,0 +1,5 @@
+.vscode/
+data/
+venv/
+*.dill
+__pycache__/
