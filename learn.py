@@ -38,7 +38,7 @@ def parse(line):
                 words[(prev_token, token)] += 1
             prev_token = token
 
-FILE = 'data/paisa.txt'
+FILE = 'data/simple.txt'
 N = 900_000
 with open(FILE) as data_file:
     n_lines = min(N, int(subprocess.check_output(f'wc -l "{FILE}"', shell=True).split()[0]))
@@ -50,4 +50,4 @@ for (prev_token, token), value in words.items():
     words_split[prev_token][token] = value
 words = words_split
 
-dill.dump(words, open('model_paisa.dill', 'wb'))
+dill.dump(words, open('model_simple.dill', 'wb'))

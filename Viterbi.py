@@ -18,17 +18,25 @@ def get_max_inverse(state, previous_states, model):
     max_prob = 0
   return max_prob
 
-def filter_possible_states(observation, possible_states, previous_states=None, model=None, amount=20):
-    if model is None:
+def filter_possible_states(observation, possible_states, previous_states=None, model_inverse=None, amount=20):
+    if model_inverse is None:
       weighted_states = [(state, probabilistic_distance(observation, state)) for state in possible_states]
     else:
       #[model_inverse[state] for state in possible_states]
-      weighted_states = [
+      weighted_states = []
+      for state in possible_states:
+        # estrai solo i previous_state di state
+        max_prob = 0
+        for predecessor in model_inverse[state].keys():
+          if predecessor in previous_states:
+            max_prob = model_inverse[state][predecessor]
+            break
+        weighted_states.append(
           (
             state,
-            probabilistic_distance(observation, state) * get_max_inverse(state, previous_states, model)
-          ) for state in possible_states
-      ]
+            probabilistic_distance(observation, state) * max_prob # * get_max_inverse(state, previous_states, model)
+          )
+        )
     weighted_states = sorted(weighted_states, key=lambda p: p[1], reverse=True)
     print(weighted_states[:amount])
     possible_states = [state for (state, distance) in weighted_states]
@@ -103,7 +111,7 @@ class Viterbi():
             possible_successor_states = set(chain.from_iterable([ list(self.model[state].keys()) for state in states[j-1] ]))
             states[j] = similar_states | possible_successor_states
             print("filter:")
-            states[j] = filter_possible_states(observation, states[j], states[j-1], self.model)
+            states[j] = filter_possible_states(observation, states[j], states[j-1], self.model_inverse)
             print("Done")
             #print(len(states[j]))
             #print(states[j])
