@@ -5,6 +5,11 @@ INSERTION_RATE = 0.67/100 #%
 SUBSTITUTION_RATE = 1.65/100 #%
 CORRECT_RATE = 1 - OMISSION_RATE - INSERTION_RATE - SUBSTITUTION_RATE #%
 
+near = dict()
+with open('nearest_keys.txt','r') as keys_file:
+  for line in keys_file:
+    near[line[0]] = line[1:]
+
 @lru_cache(maxsize=None)
 def probabilistic_distance(s, t):
     rows = len(s)+1
@@ -25,7 +30,10 @@ def probabilistic_distance(s, t):
             if s[row-1] == t[col-1]:
                 cost = CORRECT_RATE
             else:
-                cost = SUBSTITUTION_RATE
+                if t[col-1] in near.get(s[row-1], []):
+                  cost = SUBSTITUTION_RATE * 2
+                else:
+                  cost = SUBSTITUTION_RATE
             dist[row][col] = max(
                 dist[row-1][col] * OMISSION_RATE,      # deletion
                 dist[row][col-1] * INSERTION_RATE,      # insertion

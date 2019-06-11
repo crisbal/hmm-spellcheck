@@ -6,132 +6,99 @@ import numpy as np
 from itertools import chain
 
 def bktree_to_set(results):
-    return set(map(lambda x: x[1], results))
+  return set(map(lambda x: x[1], results))
 
-def get_max_inverse(state, previous_states, model):
+def get_max_inverse(state, previous_states, model, model_inverse):
   try:
-    #max_prob = next(iter(model[state].values()))
+    #max_prob = next(iter(model_inverse[state].values()))
     # return the max inverse probability (first since it is ordered dict)
     max_prob = max([model[prev].get(state, 1e-15) for prev in previous_states])
+    #a = sorted([(prev, model[prev].get(state, 1e-15)) for prev in previous_states], reverse=True, key=lambda x: x[1])
+    #print(a[0])
     # la probabilità più alta che tra le possibili parole precedenti si vada nella parola corrente
   except:
-    max_prob = 0
+    max_prob = 1e-15
   return max_prob
 
-def filter_possible_states(observation, possible_states, previous_states=None, model_inverse=None, amount=20):
-    if model_inverse is None:
-      weighted_states = [(state, probabilistic_distance(observation, state)) for state in possible_states]
-    else:
-      #[model_inverse[state] for state in possible_states]
-      weighted_states = []
-      for state in possible_states:
-        # estrai solo i previous_state di state
-        max_prob = 0
-        for predecessor in model_inverse[state].keys():
-          if predecessor in previous_states:
-            max_prob = model_inverse[state][predecessor]
-            break
-        weighted_states.append(
-          (
-            state,
-            probabilistic_distance(observation, state) * max_prob # * get_max_inverse(state, previous_states, model)
-          )
+def filter_possible_states(observation, possible_states, previous_states=None, model_inverse=None, model=None, AMOUNT=20, ADVANCE_FILTERING=True):
+  if model_inverse is None:
+    weighted_states = [(state, probabilistic_distance(observation, state)) for state in possible_states]
+  else:
+    #[model_inverse[state] for state in possible_states]
+    weighted_states = []
+    for state in possible_states:
+      # estrai solo i previous_state di state
+      """max_prob = 1e-15
+      for predecessor in model_inverse[state].keys():
+        if predecessor in previous_states:
+          max_prob = model_inverse[state][predecessor]
+          break"""
+      if ADVANCE_FILTERING:
+        multiplier = get_max_inverse(state, previous_states, model, model_inverse)
+      else:
+        multiplier = 1
+      weighted_states.append(
+        (
+          state,
+          probabilistic_distance(observation, state) * multiplier
         )
-    weighted_states = sorted(weighted_states, key=lambda p: p[1], reverse=True)
-    print(weighted_states[:amount])
-    possible_states = [state for (state, distance) in weighted_states]
-    return possible_states[:amount]
+      )
+  weighted_states = sorted(weighted_states, key=lambda p: p[1], reverse=True)
+  possible_states = [state for (state, distance) in weighted_states]
+  return possible_states[:AMOUNT]
 
 class Viterbi():
     def __init__(self, model,model_inverse, bktree):
-        self.model = model
-        self.model_inverse = model_inverse
-        self.bktree = bktree
+      self.model = model
+      self.model_inverse = model_inverse
+      self.bktree = bktree
 
-    def asd(self, observations):
-        if not observations:
-            return []
+    def run(self, observations, SEARCH_DEPTH=2, ADVANCE_FILTERING=True, AMOUNT=20):
+      if type(observations) is str:
+        observations = observations.split()
+      T1 = defaultdict(lambda: defaultdict(float))
+      T2 = defaultdict(lambda: defaultdict(str))
 
-        # all the words with ED <= 2
-        starting_states = bktree_to_list(self.bktree.find(observations[0], 1))
+      starting_states = bktree_to_set(self.bktree.find(observations[0], 3))
+      for state in starting_states:
+        # self.model['START_SENTENCE'].get(state, 1e-15) *
+        T1[0][state] = self.model['START_SENTENCE'].get(state, 1e-15) * probabilistic_distance(state, observations[0])
+        T2[0][state] = ''
 
-        viterbi = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
-        word_distributions = 1/len(starting_states)
-        for starting_state in starting_states:
-            # TODO: not uniform probability of starting state
-            viterbi[0][starting_state]['_'] = word_distributions * probabilistic_distance(starting_state, observations[0])
+      states = defaultdict(set)
+      states[0] = filter_possible_states(observations[0], starting_states, ADVANCE_FILTERING=ADVANCE_FILTERING, AMOUNT=AMOUNT)
+      #print(len(states[0]))
+      #print(states[0])
+      #print("\n")
+      for j, observation in enumerate(observations):
+        if j == 0:
+          continue
 
-        # FRASE BUONGIORNO ALLA MAMMA
-        for i, observation in enumerate(observations):
-            if i == 0: continue
-            previous_states = viterbi[i-1].keys()
-            for prev_state in previous_states:
-                # tutti gli archi uscenti da "BUONGIORNO"
-                possible_states = list(self.model[prev_state].keys())[:3]
-                for poss_state in possible_states:
-                    viterbi[i][poss_state][prev_state] = max(viterbi[i-1][prev_state].values()) * self.model[prev_state][poss_state] * probabilistic_distance(observation, poss_state)
+        similar_states = []
+        curr_depth = SEARCH_DEPTH
+        while not similar_states:
+          similar_states =  bktree_to_set(self.bktree.find(observation, curr_depth))
+          curr_depth += 1
+        possible_successor_states_and_probs = set(chain.from_iterable([ list(self.model[state].items()) for state in states[j-1] ]))
+        possible_successor_states = [pair[0] for pair in sorted(possible_successor_states_and_probs, key=lambda x: x[1], reverse=True)][:100]
+        states[j] = similar_states | set(possible_successor_states)
+        states[j] = filter_possible_states(observation, states[j], states[j-1], model_inverse=self.model_inverse, model=self.model, ADVANCE_FILTERING=ADVANCE_FILTERING, AMOUNT=AMOUNT)
+        for state in states[j]:
+          prev_states = states[j-1]
+          probs = [T1[j-1][prev_state] * self.model[prev_state].get(state, 1e-15) * probabilistic_distance(state, observation) for prev_state in prev_states]
+          T1[j][state] = max(probs)
 
-        for i in range(len(viterbi),0,-1):
-            max_value = -1
-            max_prev_state = ""
-            max_poss_state = ""
-            for poss_state in viterbi[i].keys():
-                for prev_state in viterbi[i][poss_state].keys():
-                    if viterbi[i][poss_state][prev_state] > max_value:
-                        max_value = viterbi[i][poss_state][prev_state]
-                        max_prev_state = prev_state
-                        max_poss_state = poss_state
-            print(max_poss_state)
+          probs2 = [T1[j-1][prev_state] * self.model[prev_state].get(state, 1e-15) for prev_state in prev_states]
+          T2[j][state] = prev_states[np.argmax(probs2)]
 
-        viterbi = dict(viterbi)
-        #self.pprint(viterbi)
+      # delete last level, not needed
+      if len(observations) in states: del states[len(observations)]
 
-    def run2(self, observations):
-        T1 = defaultdict(lambda: defaultdict(float))
-        T2 = defaultdict(lambda: defaultdict(str))
-
-        starting_states = bktree_to_set(self.bktree.find(observations[0], 3))
-        # TODO: improve word distribution
-        word_distributions = 1/len(starting_states)
-        for state in starting_states:
-            T1[0][state] = word_distributions * probabilistic_distance(state, observations[0])
-            T2[0][state] = ''
-
-        states = defaultdict(set)
-        states[0] = filter_possible_states(observations[0], starting_states)
-        print(len(states[0]))
-        print(states[0])
-        print("\n")
-        for j, observation in enumerate(observations):
-            if j == 0:
-                continue
-            print("bktree.find:")
-            similar_states = bktree_to_set(self.bktree.find(observation, 3))
-            print("possible successors:")
-            possible_successor_states = set(chain.from_iterable([ list(self.model[state].keys()) for state in states[j-1] ]))
-            states[j] = similar_states | possible_successor_states
-            print("filter:")
-            states[j] = filter_possible_states(observation, states[j], states[j-1], self.model_inverse)
-            print("Done")
-            #print(len(states[j]))
-            #print(states[j])
-            print("\n")
-            for state in states[j]:
-                prev_states = states[j-1]
-                probs = [T1[j-1][prev_state] * self.model[prev_state].get(state, 1e-15) * probabilistic_distance(state, observation) for prev_state in prev_states]
-                T1[j][state] = max(probs)
-
-                probs2 = [T1[j-1][prev_state] * self.model[prev_state].get(state, 1e-15) for prev_state in prev_states]
-                T2[j][state] = prev_states[np.argmax(probs2)]
-
-        # delete last level, not needed
-        if len(observations) in states: del states[len(observations)]
-
-        # reconstruct
-        T = len(observations) - 1
-        X = ['' for i in range(len(observations))]
-        X[T] = states[T][np.argmax([T1[T][state] for state in states[T]])]
-        for j in range(T, 0, -1):
-            X[j-1] = T2[j][X[j]]
-        #pprint(T2)
-        return X
+      # reconstruct
+      T = len(observations) - 1
+      X = ['' for i in range(len(observations))]
+      X[T] = states[T][np.argmax([T1[T][state] for state in states[T]])]
+      for j in range(T, 0, -1):
+        X[j-1] = T2[j][X[j]]
+      #pprint(T2)
+      return X
