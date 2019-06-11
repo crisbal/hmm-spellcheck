@@ -1,5 +1,7 @@
 .vscode/
-data/
+data/*
 venv/
 *.dill
 __pycache__/
+!data/nearest_keys.txt
+!data/names.txt

@@ -6,7 +6,7 @@ SUBSTITUTION_RATE = 1.65/100 #%
 CORRECT_RATE = 1 - OMISSION_RATE - INSERTION_RATE - SUBSTITUTION_RATE #%
 
 near = dict()
-with open('nearest_keys.txt','r') as keys_file:
+with open('data/nearest_keys.txt','r') as keys_file:
   for line in keys_file:
     near[line[0]] = line[1:]
 
