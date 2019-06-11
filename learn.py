@@ -14,20 +14,32 @@ import tqdm
 import config
 
 pattern = re.compile(r'[\W_]+')
+punct = set(string.punctuation)
 def clean_token(token):
-    token = pattern.sub('', token).strip()
-    return token if len(token) else None
+  if token in punct: return None
+  token = pattern.sub('', token).strip()
+  return token or None
+
+names = set([line.strip() for line in open("data/names.txt")])
+def replace_names(token):
+  if token in names:
+    return "PERSON_NAME"
+  else:
+    return token
 
 def tokenize_sentence(sentence, end_sentence=False):
+  sentence = sentence.lower()
   tokens = wordpunct_tokenize(sentence)
-  tokens = filter(lambda t: t not in string.punctuation, tokens)
-  tokens = map(str.lower, tokens)
-  tokens = filter(lambda x: all(not i.isdigit() for i in x), tokens)
   tokens = map(clean_token, tokens)
   tokens = filter(None, tokens)
+  tokens = filter(lambda x: all(not i.isdigit() for i in x), tokens)
   tokens = list(tokens)
   if end_sentence:
     tokens.append("END_SENTENCE")
+  return tokens
+
+def generalize_tokens(tokens):
+  tokens = list(map(replace_names, tokens))
   return tokens
 
 words = defaultdict(int)
@@ -36,6 +48,7 @@ def parse(line):
     sentences = sent_tokenize(line)
     for sentence in sentences:
         tokens = tokenize_sentence(sentence, end_sentence=True)
+        tokens = generalize_tokens(tokens)
         for i, token in enumerate(tokens):
           if i == 0:
             words[("START_SENTENCE", token)] += 1
