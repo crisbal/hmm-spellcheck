@@ -7,20 +7,12 @@ import editdistance
 import config
 from probabilistic_distance import probabilistic_distance
 
-print("Loading model...")
-model = dill.load(open(f"{config.MODEL}/model.dill", 'rb'))
-words = model['words']
-words_inverse = model['words_inverse']
-tree = model['tree']
-
-print("Ready.")
 from Viterbi import Viterbi
-viterbi = Viterbi(words, words_inverse, tree)
 
 import string
+import readline
 from nltk import sent_tokenize, wordpunct_tokenize
 from learn import tokenize_sentence, generalize_tokens
-import readline
 
 def rebuild(tokens, correct_tokens):
   rebuilt_tokens = correct_tokens.copy()
@@ -29,19 +21,38 @@ def rebuild(tokens, correct_tokens):
       rebuilt_tokens[i] = tokens[i]
   return rebuilt_tokens
 
-def correct(text):
-  sentences = sent_tokenize(text)
-  for sentence in sentences:
-    print(" ".join(correct_sentence(sentence)))
+class Corrector():
+  def load_model(self):
+    print("Loading model")
+    model = dill.load(open(f"{config.MODEL}/model.dill", 'rb'))
+    words = model['words']
+    words_inverse = model['words_inverse']
+    tree = model['tree']
+    viterbi = Viterbi(words, words_inverse, tree)
+    print("Ready.")
+    self.viterbi = viterbi
+    self.words = words
+    self.words_inverse = words_inverse
+    self.tree = tree
 
-def correct_sentence(sentence):
-  tokens = tokenize_sentence(sentence)
-  generalized_tokens = generalize_tokens(tokens)
-  corrected_tokens = viterbi.run(generalized_tokens)
-  rebuilt_tokens = rebuild(tokens, corrected_tokens)
-  return rebuilt_tokens
+  def correct(self, text):
+    sentences = sent_tokenize(text)
+    corrected_sentences = []
+    for sentence in sentences:
+      corrected_sentences.append(" ".join(self.correct_sentence(sentence)))
+    return corrected_sentences
+
+  def correct_sentence(self, sentence):
+    tokens = tokenize_sentence(sentence)
+    generalized_tokens = generalize_tokens(tokens)
+    corrected_tokens = self.viterbi.run(generalized_tokens)
+    rebuilt_tokens = rebuild(tokens, corrected_tokens)
+    return rebuilt_tokens
 
 if __name__ == "__main__":
+  corrector = Corrector()
+  corrector.load_model()
   while True:
     text = input(">>> ")
-    correct(text)
+    corrected_sentences = corrector.correct(text)
+    [print(sent) for sent in corrected_sentences]

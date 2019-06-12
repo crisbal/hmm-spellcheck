@@ -1,13 +1,17 @@
-from correct import tokenize_sentence, viterbi
+from correct import Corrector
+from learn import tokenize_sentence
 from collections import defaultdict
 import random
 
-FILE = "data/test_it.txt"
 
 letters = ['a','b','c','d','e','f','g','h','i','j','k','l','m',
            'n','o','p','q','r','s','t','u','v','w','x','y','z',]
+<<<<<<< HEAD
 
 def noise_maker(sentence, threshold=0.9):
+=======
+def noise_maker(sentence, threshold=0.5):
+>>>>>>> Code reorganize, start working on web interface
   noisy_sentence = []
   i = 0
 
@@ -48,6 +52,11 @@ def noise_maker(sentence, threshold=0.9):
     i += 1
   return "".join(noisy_sentence)
 
+FILE = "data/test_it.txt"
+
+corrector = Corrector()
+corrector.load_model()
+
 total_lines = 0
 ok_lines = 0
 with open(FILE, "r") as test_file:
@@ -64,8 +73,7 @@ with open(FILE, "r") as test_file:
 
     wrong_line = next(test_file)
     wrong_tokens = tokenize_sentence(wrong_line)
-    #corrected_tokens = viterbi.run(wrong_tokens)
-    corrected_tokens = viterbi.run(noised_sentence)
+    corrected_tokens = corrector.viterbi.run(noised_sentence)
     corrected_line = " ".join(corrected_tokens)
     if corrected_line == correct_line:
       print("OK", correct_line)
