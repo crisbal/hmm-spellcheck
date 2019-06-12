@@ -6,15 +6,10 @@ import random
 
 letters = ['a','b','c','d','e','f','g','h','i','j','k','l','m',
            'n','o','p','q','r','s','t','u','v','w','x','y','z',]
-<<<<<<< HEAD
 
 def noise_maker(sentence, threshold=0.9):
-=======
-def noise_maker(sentence, threshold=0.5):
->>>>>>> Code reorganize, start working on web interface
   noisy_sentence = []
   i = 0
-
   while i < len(sentence):
     do_error = random.random()
     if do_error < threshold:
@@ -53,17 +48,17 @@ def noise_maker(sentence, threshold=0.5):
   return "".join(noisy_sentence)
 
 FILE = "data/test_it.txt"
+if __name__ == "__main__":
+  corrector = Corrector()
+  corrector.load_model()
 
-corrector = Corrector()
-corrector.load_model()
-
-total_lines = 0
-ok_lines = 0
-with open(FILE, "r") as test_file:
-  for correct_line in test_file:
-    total_lines += 1
-    correct_tokens = tokenize_sentence(correct_line)
-    correct_line = " ".join(correct_tokens)
+  total_lines = 0
+  ok_lines = 0
+  with open(FILE, "r") as test_file:
+    for correct_line in test_file:
+      total_lines += 1
+      correct_tokens = tokenize_sentence(correct_line)
+      correct_line = " ".join(correct_tokens)
 
     noised_sentence = noise_maker(correct_line, 0.9)
     #noised_sentence = "".join(noised_sentence_list)
@@ -71,16 +66,16 @@ with open(FILE, "r") as test_file:
     noised_sentence = tokenize_sentence(noised_sentence)
     #print("\t", noised_sentence)
 
-    wrong_line = next(test_file)
-    wrong_tokens = tokenize_sentence(wrong_line)
-    corrected_tokens = corrector.viterbi.run(noised_sentence)
-    corrected_line = " ".join(corrected_tokens)
-    if corrected_line == correct_line:
-      print("OK", correct_line)
-      ok_lines += 1
-    else:
-      print(correct_line,"-", corrected_line)
+      wrong_line = next(test_file)
+      wrong_tokens = tokenize_sentence(wrong_line)
+      corrected_tokens = corrector.viterbi.run(noised_sentence)
+      corrected_line = " ".join(corrected_tokens)
+      if corrected_line == correct_line:
+        print("OK", correct_line)
+        ok_lines += 1
+      else:
+        print(correct_line,"-", corrected_line)
 
-print(total_lines)
-print(ok_lines)
-print(ok_lines/total_lines)
+  print(total_lines)
+  print(ok_lines)
+  print(ok_lines/total_lines)

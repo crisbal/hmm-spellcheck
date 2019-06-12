@@ -69,9 +69,9 @@ def viterbi():
   last_sentence = sentences[-1]
   return corrector.correct(last_sentence)[0]
 
-@app.route("/api/transorm")
+@app.route("/api/transform")
 def transform():
   text = request.args.get("text","")
-  return noise_maker(text, 0.9)
+  return jsonify(noise_maker(text, 0.9))
 
 app.run(debug=True)
