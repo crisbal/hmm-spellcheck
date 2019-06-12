@@ -7,7 +7,7 @@ FILE = "data/test_it.txt"
 letters = ['a','b','c','d','e','f','g','h','i','j','k','l','m',
            'n','o','p','q','r','s','t','u','v','w','x','y','z',]
 
-def noise_maker(sentence, threshold=0.5):
+def noise_maker(sentence, threshold=0.9):
   noisy_sentence = []
   i = 0
 
@@ -46,7 +46,7 @@ def noise_maker(sentence, threshold=0.5):
       else:
           noisy_sentence.append(sentence[i])
     i += 1
-  return noisy_sentence
+  return "".join(noisy_sentence)
 
 total_lines = 0
 ok_lines = 0
@@ -56,10 +56,9 @@ with open(FILE, "r") as test_file:
     correct_tokens = tokenize_sentence(correct_line)
     correct_line = " ".join(correct_tokens)
 
-    for i in range(10):
-      noised_sentence_list = noise_maker(correct_line, 0.9)
-      noised_sentence = "".join(noised_sentence_list)
-      print("\t\t", noised_sentence)
+    noised_sentence = noise_maker(correct_line, 0.9)
+    #noised_sentence = "".join(noised_sentence_list)
+    #print("\t\t", noised_sentence)
     noised_sentence = tokenize_sentence(noised_sentence)
     #print("\t", noised_sentence)
 
