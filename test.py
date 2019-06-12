@@ -60,14 +60,10 @@ if __name__ == "__main__":
       correct_tokens = tokenize_sentence(correct_line)
       correct_line = " ".join(correct_tokens)
 
-    noised_sentence = noise_maker(correct_line, 0.9)
-    #noised_sentence = "".join(noised_sentence_list)
-    #print("\t\t", noised_sentence)
-    noised_sentence = tokenize_sentence(noised_sentence)
-    #print("\t", noised_sentence)
-
-      wrong_line = next(test_file)
-      wrong_tokens = tokenize_sentence(wrong_line)
+      noised_sentence = noise_maker(correct_line, 0.9)
+      #noised_sentence = "".join(noised_sentence_list)
+      #print("\t\t", noised_sentence)
+      noised_sentence = tokenize_sentence(noised_sentence)
       corrected_tokens = corrector.viterbi.run(noised_sentence)
       corrected_line = " ".join(corrected_tokens)
       if corrected_line == correct_line:
