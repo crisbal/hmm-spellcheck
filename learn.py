@@ -21,9 +21,12 @@ def clean_token(token):
   return token or None
 
 names = set([line.strip() for line in open("data/names.txt")])
-def replace_names(token):
+def replace_names(token, keep_both=False):
   if token in names:
-    return "PERSON_NAME"
+    if keep_both:
+      return f"PERSON_NAME|{token}"
+    else:
+      return "PERSON_NAME"
   else:
     return token
 
@@ -38,22 +41,35 @@ def tokenize_sentence(sentence, end_sentence=False):
     tokens.append("END_SENTENCE")
   return tokens
 
-def generalize_tokens(tokens):
-  tokens = list(map(replace_names, tokens))
+def generalize_tokens(tokens, keep_both=False):
+  tokens = list(map(lambda x: replace_names(x, keep_both=keep_both), tokens))
   return tokens
 
 words = defaultdict(int)
+skip_forms = ["<text", "</text", "## ", "# ", "warning:", "facezie", "pubblicato da", "temi:", "pubblicato"]
 def parse(line):
-    if line.startswith("<text") or line.startswith("</text") or line.startswith("#"): return
+    lower_line = line.lower()
+    if any([lower_line.startswith(skip_form) for skip_form in skip_forms]): return
     sentences = sent_tokenize(line)
     for sentence in sentences:
         tokens = tokenize_sentence(sentence, end_sentence=True)
-        tokens = generalize_tokens(tokens)
+        if len(tokens) < 3: continue
+        tokens = generalize_tokens(tokens, keep_both=True)
         for i, token in enumerate(tokens):
           if i == 0:
-            words[("START_SENTENCE", token)] += 1
+            if token.startswith("PERSON_NAME"):
+              tokens = token.split("|")
+              words[("START_SENTENCE", tokens[0])] += 1
+              words[("START_SENTENCE", tokens[1])] += 1
+            else:
+              words[("START_SENTENCE", token)] += 1
           else:
-            words[(prev_token, token)] += 1
+            if token.startswith("PERSON_NAME"):
+              tokens = token.split("|")
+              words[(prev_token, tokens[0])] += 1
+              words[(prev_token, tokens[1])] += 1
+            else:
+              words[(prev_token, token)] += 1
           prev_token = token
 
 """FILE = 'data/paisa.txt'
