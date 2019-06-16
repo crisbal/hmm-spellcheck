@@ -40,3 +40,6 @@ Cristian Baldi - Simone Vitali
 
 
 
+## Raw Dataset
+
+https:// datacloud [DOT] di.unito [DOT] it/index.php/s/Wn8tRFyETxZkqJc
