@@ -1,1 +1,1 @@
-MODEL = "data/paisa"
+MODEL = "data/twita"

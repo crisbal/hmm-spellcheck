@@ -32,10 +32,10 @@ def replace_names(token, keep_both=False):
 
 def tokenize_sentence(sentence, end_sentence=False):
   sentence = sentence.lower()
+  sentence = tag_regex.sub('', sentence)
   tokens = wordpunct_tokenize(sentence)
   tokens = map(clean_token, tokens)
   tokens = filter(None, tokens)
-  tokens = filter(lambda x: all(not i.isdigit() for i in x), tokens)
   tokens = list(tokens)
   if end_sentence:
     tokens.append("END_SENTENCE")
@@ -46,31 +46,38 @@ def generalize_tokens(tokens, keep_both=False):
   return tokens
 
 words = defaultdict(int)
-skip_forms = ["<text", "</text", "## ", "# ", "warning:", "facezie", "pubblicato da", "temi:", "pubblicato"]
+url_regex = re.compile(r'http\S+')
+tag_regex = re.compile(r'@\S+')
+skip_lines = ["<text", "</text", "## ", "# ", "warning:", "facezie", "pubblicato da", "temi:", "pubblicato", "postato ", "from:", "by", "__", "directory", "appunti:"]
+skip_sents = ["http", "www.", "logorrea"]
 def parse(line):
-    lower_line = line.lower()
-    if any([lower_line.startswith(skip_form) for skip_form in skip_forms]): return
-    sentences = sent_tokenize(line)
-    for sentence in sentences:
-        tokens = tokenize_sentence(sentence, end_sentence=True)
-        if len(tokens) < 3: continue
-        tokens = generalize_tokens(tokens, keep_both=True)
-        for i, token in enumerate(tokens):
-          if i == 0:
-            if token.startswith("PERSON_NAME"):
-              tokens = token.split("|")
-              words[("START_SENTENCE", tokens[0])] += 1
-              words[("START_SENTENCE", tokens[1])] += 1
-            else:
-              words[("START_SENTENCE", token)] += 1
+  line = url_regex.sub('', line)
+  #lower_line = line.lower()
+  #if any([lower_line.startswith(skip_form) for skip_form in skip_lines]): return
+  sentences = sent_tokenize(line)
+  for sentence in sentences:
+      #sent_lower = sentence.lower()
+      #if any([skip in sent_lower for skip in skip_sents]): continue
+      tokens = tokenize_sentence(sentence, end_sentence=True)
+      if len(tokens) < 3: continue
+      tokens = generalize_tokens(tokens, keep_both=True)
+      for i, token in enumerate(tokens):
+        if i == 0:
+          if token.startswith("PERSON_NAME"):
+            tokens = token.split("|")
+            words[("START_SENTENCE", tokens[0])] += 1
+            words[("START_SENTENCE", tokens[1])] += 1
           else:
-            if token.startswith("PERSON_NAME"):
-              tokens = token.split("|")
-              words[(prev_token, tokens[0])] += 1
-              words[(prev_token, tokens[1])] += 1
-            else:
-              words[(prev_token, token)] += 1
-          prev_token = token
+            words[("START_SENTENCE", token)] += 1
+        else:
+          if token.startswith("PERSON_NAME"):
+            tokens = token.split("|")
+            words[(prev_token, tokens[0])] += 1
+            words[(prev_token, tokens[1])] += 1
+            token = tokens[0]
+          else:
+            words[(prev_token, token)] += 1
+        prev_token = token
 
 """FILE = 'data/paisa.txt'
 N = 100_000
@@ -80,12 +87,13 @@ with open(FILE) as data_file:
     parse(line)
 """
 
+MAX_LINES = 5_000_000
+MAX_LINES_REAL = 1000000
 if __name__ == "__main__":
-  MAX_LINES = 900_000
   for FILE in os.listdir(config.MODEL):
     if not FILE.endswith('.txt'): continue
     with open(f"{config.MODEL}/{FILE}") as data_file:
-      n_lines = min(MAX_LINES, int(subprocess.check_output(f'wc -l "{config.MODEL}/{FILE}"', shell=True).split()[0]))
+      n_lines = min(MAX_LINES_REAL, int(subprocess.check_output(f'wc -l "{config.MODEL}/{FILE}"', shell=True).split()[0]))
       for line in tqdm.tqdm(islice(data_file, n_lines), total=n_lines):
         parse(line)
 

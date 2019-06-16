@@ -54,12 +54,15 @@ class Viterbi():
       self.bktree = bktree
 
     def run(self, observations, SEARCH_DEPTH=2, ADVANCE_FILTERING=True, AMOUNT=20):
-      if type(observations) is str:
-        observations = observations.split()
+      if not len(observations): return []
+
       T1 = defaultdict(lambda: defaultdict(float))
       T2 = defaultdict(lambda: defaultdict(str))
 
       starting_states = bktree_to_set(self.bktree.find(observations[0], 3))
+      if not len(starting_states):
+        starting_states = [observations[0]]
+
       for state in starting_states:
         # self.model['START_SENTENCE'].get(state, 1e-15) *
         T1[0][state] = self.model['START_SENTENCE'].get(state, 1e-15) * probabilistic_distance(state, observations[0])
@@ -67,6 +70,8 @@ class Viterbi():
 
       states = defaultdict(set)
       states[0] = filter_possible_states(observations[0], starting_states, ADVANCE_FILTERING=ADVANCE_FILTERING, AMOUNT=AMOUNT)
+      if not len(states[0]):
+        states[0] = [observations[0]]
       #print(len(states[0]))
       #print(states[0])
       #print("\n")
@@ -83,6 +88,9 @@ class Viterbi():
         possible_successor_states = [pair[0] for pair in sorted(possible_successor_states_and_probs, key=lambda x: x[1], reverse=True)][:100]
         states[j] = similar_states | set(possible_successor_states)
         states[j] = filter_possible_states(observation, states[j], states[j-1], model_inverse=self.model_inverse, model=self.model, ADVANCE_FILTERING=ADVANCE_FILTERING, AMOUNT=AMOUNT)
+        if not len(states[j]):
+          states[j] = [observation]
+        #print(states[j])
         for state in states[j]:
           prev_states = states[j-1]
           probs = [T1[j-1][prev_state] * self.model[prev_state].get(state, 1e-15) * probabilistic_distance(state, observation) for prev_state in prev_states]

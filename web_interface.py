@@ -1,5 +1,5 @@
 from correct import Corrector
-from learn import tokenize_sentence
+from learn import tokenize_sentence, names
 from flask import Flask, render_template, request, jsonify, current_app
 from nltk import sent_tokenize
 from probabilistic_distance import probabilistic_distance
@@ -22,6 +22,9 @@ def hello():
 def successors():
   RETURN_AMOUNT = 10
   text = request.args.get("text","")
+
+  has_space = False
+  if text.endswith(" "): has_space = True
   #text = "ciao a tutti. come va?"
   sentences = sent_tokenize(text)
   if len(sentences):
@@ -35,7 +38,7 @@ def successors():
       sorted(corrector.words["START_SENTENCE"].keys(), key=lambda x: corrector.words["START_SENTENCE"].get(x, 1e-15), reverse=True)[:RETURN_AMOUNT]
     )
 
-  if len(tokens) == 1:
+  if len(tokens) == 1 and not has_space:
     input_word = tokens[0]
     similar_words = bktree_to_set(corrector.tree.find(input_word, 3))
     weighted_similar_words = [
@@ -46,7 +49,7 @@ def successors():
       [x[0] for x in weighted_similar_words]
     )
 
-  if len(tokens) > 1:
+  if len(tokens) > 1 and not has_space:
     token = tokens[-1]
     prev_token = tokens[-2]
     similar_words = bktree_to_set(corrector.tree.find(token, 3))
@@ -56,6 +59,16 @@ def successors():
     weighted_similar_words = sorted(weighted_similar_words, key=lambda x: x[1], reverse=True)[:RETURN_AMOUNT]
     return jsonify(
       [x[0] for x in weighted_similar_words]
+    )
+
+  if len(tokens) >= 1 and has_space:
+    # prendi l'ultimo token e fai vedere quelli più probabili successivi
+    last_token = tokens[-1]
+    if last_token in names:
+      last_token = "PERSON_NAME"
+
+    return jsonify(
+      sorted(corrector.words[last_token].keys(), key=lambda x: corrector.words[last_token].get(x, 1e-15), reverse=True)[:RETURN_AMOUNT]
     )
 
 @app.route("/api/viterbi")
@@ -69,9 +82,9 @@ def viterbi():
   last_sentence = sentences[-1]
   return corrector.correct(last_sentence)[0]
 
-@app.route("/api/transform")
-def transform():
+@app.route("/api/noise")
+def noise():
   text = request.args.get("text","")
-  return jsonify(noise_maker(text, 0.9))
+  return noise_maker(text, 0.9)
 
 app.run(debug=True)
