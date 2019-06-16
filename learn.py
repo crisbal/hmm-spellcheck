@@ -88,7 +88,7 @@ with open(FILE) as data_file:
 """
 
 MAX_LINES = 5_000_000
-MAX_LINES_REAL = 1000000
+MAX_LINES_REAL = 100_000
 if __name__ == "__main__":
   for FILE in os.listdir(config.MODEL):
     if not FILE.endswith('.txt'): continue
