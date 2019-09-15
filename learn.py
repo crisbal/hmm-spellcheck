@@ -49,15 +49,15 @@ words = defaultdict(int)
 url_regex = re.compile(r'http\S+')
 tag_regex = re.compile(r'@\S+')
 skip_lines = ["<text", "</text", "## ", "# ", "warning:", "facezie", "pubblicato da", "temi:", "pubblicato", "postato ", "from:", "by", "__", "directory", "appunti:"]
-skip_sents = ["http", "www.", "logorrea"]
+skip_sents = ["http", "www."]
 def parse(line):
   line = url_regex.sub('', line)
-  #lower_line = line.lower()
-  #if any([lower_line.startswith(skip_form) for skip_form in skip_lines]): return
+  lower_line = line.lower()
+  if any([lower_line.startswith(skip_form) for skip_form in skip_lines]): return
   sentences = sent_tokenize(line)
   for sentence in sentences:
-      #sent_lower = sentence.lower()
-      #if any([skip in sent_lower for skip in skip_sents]): continue
+      sent_lower = sentence.lower()
+      if any([skip in sent_lower for skip in skip_sents]): continue
       tokens = tokenize_sentence(sentence, end_sentence=True)
       if len(tokens) < 3: continue
       tokens = generalize_tokens(tokens, keep_both=True)
@@ -79,21 +79,12 @@ def parse(line):
             words[(prev_token, token)] += 1
         prev_token = token
 
-"""FILE = 'data/paisa.txt'
-N = 100_000
-with open(FILE) as data_file:
-  n_lines = min(N, int(subprocess.check_output(f'wc -l "{FILE}"', shell=True).split()[0]))
-  for line in tqdm.tqdm(islice(data_file, n_lines), total=n_lines):
-    parse(line)
-"""
-
-MAX_LINES = 5_000_000
-MAX_LINES_REAL = 100_000
+MAX_LINES = 100_000
 if __name__ == "__main__":
   for FILE in os.listdir(config.MODEL):
     if not FILE.endswith('.txt'): continue
     with open(f"{config.MODEL}/{FILE}") as data_file:
-      n_lines = min(MAX_LINES_REAL, int(subprocess.check_output(f'wc -l "{config.MODEL}/{FILE}"', shell=True).split()[0]))
+      n_lines = min(MAX_LINES, int(subprocess.check_output(f'wc -l "{config.MODEL}/{FILE}"', shell=True).split()[0]))
       for line in tqdm.tqdm(islice(data_file, n_lines), total=n_lines):
         parse(line)
 

@@ -1,18 +1,16 @@
 from collections import defaultdict
+import string
+import readline
 
 import dill
 import pybktree
 import editdistance
+from nltk import sent_tokenize, wordpunct_tokenize
 
 import config
 from probabilistic_distance import probabilistic_distance
-
-from Viterbi import Viterbi
-
-import string
-import readline
-from nltk import sent_tokenize, wordpunct_tokenize
 from learn import tokenize_sentence, generalize_tokens
+from Viterbi import Viterbi
 
 def rebuild(tokens, correct_tokens):
   rebuilt_tokens = correct_tokens.copy()

@@ -9,7 +9,7 @@ import config
 print("Loading words...")
 words = dill.load(open(f"{config.MODEL}/words.dill", 'rb'))
 
-# elimino parole che compaiono una volta sola
+# remove words that only appear one time
 i = 0
 keys = list(words.keys())
 for word in keys:
@@ -43,9 +43,7 @@ for successor in words_inverse.keys():
   for (pred, probability) in pred_and_probs:
     words_inverse[successor][pred] = probability
 
-
-print("Finalizing words...")
-
+print("Normalizing word frequencies...")
 for word in words.values():
   successors = word.keys()
   occurrences = word.values()
