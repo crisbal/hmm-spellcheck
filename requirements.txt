@@ -18,7 +18,7 @@ MarkupSafe==1.1.1
 mccabe==0.6.1
 murmurhash==1.0.2
 nltk==3.4.1
-numpy==1.16.4
+numpy==1.22.0
 plac==0.9.6
 preshed==2.0.1
 pybktree==1.1
